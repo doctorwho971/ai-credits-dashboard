@@ -1,0 +1,182 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abacus.AI Credits Monitor</title>
+
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 16px;
+    background: #14283d;
+    color: #f4f7fb;
+    font-family: Arial, sans-serif;
+  }
+
+  .card {
+    background: #1e354c;
+    border: 1px solid #35516b;
+    border-radius: 14px;
+    padding: 22px;
+    max-width: 600px;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 22px;
+  }
+
+  .plan {
+    background: #284d66;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .credits {
+    font-size: 46px;
+    font-weight: bold;
+    margin: 22px 0 6px;
+  }
+
+  .subtitle, .updated {
+    color: #aebfd0;
+    font-size: 13px;
+  }
+
+  .bar {
+    height: 12px;
+    background: #344b60;
+    border-radius: 20px;
+    overflow: hidden;
+    margin-top: 20px;
+  }
+
+  .fill {
+    height: 100%;
+    width: 0;
+    background: #28d67a;
+    transition: width .4s;
+  }
+
+  .details {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 13px;
+  }
+
+  .updated {
+    margin-top: 22px;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+  <div class="header">
+    <h2>Abacus.AI</h2>
+    <span class="plan">Basic</span>
+  </div>
+
+  <div class="credits" id="credits">—</div>
+  <div class="subtitle">Crediti disponibili</div>
+
+  <div class="bar">
+    <div class="fill" id="fill"></div>
+  </div>
+
+  <div class="details">
+    <span id="percent">—</span>
+    <span id="total">— crediti totali</span>
+  </div>
+
+  <div class="updated" id="updated">
+    Caricamento dati...
+  </div>
+
+</div>
+
+<script>
+const GIST_ID = "18b97031dd4c1879af89dd94aa429dc4";
+
+async function aggiorna() {
+  try {
+    const url = "https://api.github.com/gists/" + GIST_ID;
+
+    const response = await fetch(url, {
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status);
+    }
+
+    const gist = await response.json();
+    const file = gist.files["abacus-credits.json"];
+
+    if (!file || file.truncated) {
+      throw new Error("File Abacus non disponibile");
+    }
+
+    const data = JSON.parse(file.content);
+
+    const credits = Number(data.credits);
+    const total = Number(data.total);
+
+    if (
+      !Number.isFinite(credits) ||
+      !Number.isFinite(total) ||
+      total <= 0 ||
+      credits < 0 ||
+      credits > total
+    ) {
+      throw new Error("Valori dei crediti non validi");
+    }
+
+    const percent = credits / total * 100;
+
+    document.getElementById("credits").textContent =
+      credits.toLocaleString("it-IT");
+
+    document.getElementById("total").textContent =
+      total.toLocaleString("it-IT") + " crediti totali";
+
+    document.getElementById("fill").style.width =
+      percent + "%";
+
+    document.getElementById("percent").textContent =
+      percent.toFixed(1).replace(".", ",") + "% residuo";
+
+    document.getElementById("updated").textContent =
+      "Aggiornato: " +
+      new Date(data.updated_at).toLocaleString("it-IT", {
+        timeZone: "Europe/Rome",
+        dateStyle: "short",
+        timeStyle: "short"
+      });
+
+  } catch (error) {
+    document.getElementById("updated").textContent =
+      "Impossibile aggiornare i dati: " + error.message;
+  }
+}
+
+aggiorna();
+setInterval(aggiorna, 5 * 60 * 1000);
+</script>
+
+</body>
+</html>
